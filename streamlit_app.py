@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 # Configuración de página
 st.set_page_config(
@@ -14,6 +15,12 @@ def cargar_datos():
     return df
 
 df = cargar_datos()
+
+df[['Tipo_Principal', 'Tipo_Secundario']] = df['Tipo'].str.split('/', n=1, expand=True)
+df['Tipo_Principal'] = df['Tipo_Principal'].str.strip()
+df['Tipo_Secundario'] = df['Tipo_Secundario'].str.strip()
+tipos_principal = sorted(df['Tipo_Principal'].unique())
+tipos_secundario = sorted(df['Tipo_Secundario'].dropna().unique())
 
 st.title("⚡ Dashboard Pokémon - Análisis Global")
 
@@ -38,11 +45,15 @@ with st.sidebar:
         default=['Todos']
     )
     
-    # Filtro tipo
-    tipos_disponibles = ['Todos'] + sorted(df['Tipo'].dropna().unique().tolist())
-    tipo_seleccionado = st.multiselect(
-        "⚔️ Tipo",
-        tipos_disponibles,
+    # Filtros tipo principal/secundario (NUEVO)
+    tipo_principal_sel = st.multiselect(
+        "Tipo principal",
+        ['Todos'] + tipos_principal,
+        default=['Todos']
+    )
+    tipo_secundario_sel = st.multiselect(
+        "Tipo secundario",
+        ['Todos'] + tipos_secundario,
         default=['Todos']
     )
     
@@ -60,13 +71,16 @@ with st.sidebar:
 df_filtrado = df.copy()
 if 'Todos' not in pais_seleccionado and len(pais_seleccionado) > 0:
     df_filtrado = df_filtrado[df_filtrado['País'].isin(pais_seleccionado)]
-if 'Todos' not in tipo_seleccionado and len(tipo_seleccionado) > 0:
-    df_filtrado = df_filtrado[df_filtrado['Tipo'].isin(tipo_seleccionado)]
+if 'Todos' not in tipo_principal_sel:
+    df_filtrado = df_filtrado[df_filtrado['Tipo_Principal'].isin(tipo_principal_sel)]
+if 'Todos' not in tipo_secundario_sel:
+    df_filtrado = df_filtrado[df_filtrado['Tipo_Secundario'].isin(tipo_secundario_sel)]
 df_filtrado = df_filtrado[
     (df_filtrado['Total'] >= rango_stats[0]) & 
     (df_filtrado['Total'] <= rango_stats[1])
 ]
 
+# Dashboards
 if dashboard_seleccionado == "Explorador de Combate":
     st.header("⚔️ Explorador de Combate")
     col1, col2, col3, col4 = st.columns(4)
